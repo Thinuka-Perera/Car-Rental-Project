@@ -6,15 +6,15 @@ import { Zap, Users, Fuel, Gauge, CheckCircle,ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const HomeCars = () => {
-  const [hoveredCard, setHoveredCard] = useState(null); // ✅ added
-  const [animateCards, setAnimateCards] = useState(false); // ✅ added
+  const [hoveredCard, setHoveredCard] = useState(null); 
+  const [animateCards, setAnimateCards] = useState(false); 
 
   const navigate = useNavigate();
   const visibleCars = carsData.slice(0, 6);
 
-  // ✅ trigger animation after small delay
+  // trigger animation after small delay
   useEffect(() => {
-    const timer = setTimeout(() => setAnimateCards(true), 200);
+    const timer = setTimeout(() => setAnimateCards(true), 300);
     return () => clearTimeout(timer);
   }, []);
 
