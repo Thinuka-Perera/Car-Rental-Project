@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { homeCarsStyles as styles } from "../assets/dummyStyles";
 import carsData from "../assets/HcarsData";
-import { Zap } from "lucide-react";
+import { Zap, Users, Fuel, Gauge, CheckCircle,ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const HomeCars = () => {
@@ -94,6 +94,67 @@ const HomeCars = () => {
                   }}
                 />
               </div>
+
+              <div className={styles.content}>
+                {/* Top section with car name and type */}
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className={styles.carName}>{car.name}</h3>
+
+                    <p className={styles.carInfoContainer}>
+                      <span className={styles.carTypeBadge}>{car.type}</span>
+                      <span className={styles.carYear}>{car.year}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className={styles.specsGrid}>
+                  {[
+                    { icon: Users, value: car.seats, label: "Seats" },
+                    { icon: Fuel, value: car.fuel, label: "Fuel" },
+                    { icon: Gauge, value: car.mileage, label: "Mileage" },
+                    {
+                      icon: CheckCircle,
+                      value: car.transmission,
+                      label: "Trans",
+                    },
+                  ].map((spec, i) => (
+                    <div key={i} className={styles.specItem}>
+                      <div
+                        className={`${styles.specIconContainer} ${
+                          hoveredCard === car.id
+                            ? "text-blue-500"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        <spec.icon
+                          className={`${styles.specIcon} ${
+                            hoveredCard === car.id
+                              ? "text-blue-600"
+                              : "text-gray-600"
+                          }`}
+                        />
+                      </div>
+                      <span className={styles.specValue}>{spec.value}</span>
+                      <span className={styles.specLabel}>{spec.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() =>
+                    navigate(`/cars/${car.id}`, { state: { car } })
+                  }
+                  className={styles.bookButton}
+                >
+                  <span className={styles.buttonText}>
+                    Book Now
+                    <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </span>
+
+                </button>
+              </div>
+              <div className={styles.accentBlur} />
             </div>
           );
         })}
