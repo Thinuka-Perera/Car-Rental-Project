@@ -127,10 +127,12 @@ const Navbar = () => {
                 <img
                   src={logo}
                   alt="Logo"
-                  className="h-8 w-auto"
+                  className="h-7 w-auto"
                   style={{ objectFit: "contain" }}
                 />
+                <span className={styles.logoText}>Yougo</span>
               </div>
+              
             </Link>
 
             {/* 🌍 Desktop Nav Links */}

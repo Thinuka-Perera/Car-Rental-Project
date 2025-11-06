@@ -40,62 +40,60 @@ const Testimonial = () => {
             const IconComponent = styles.icons[index % styles.icons.length];
 
             return (
-              <div>
-                <div
-                  key={t.id}
-                  className={styles.card}
-                  style={{
-                    clipPath:
-                      "polygon(0% 10%, 10% 0%, 100% 0%, 100% 90%, 90% 100%, 0% 100%)",
-                    background:
-                      "linear-gradient(145deg, rgba(30,30,40,0.8), rgba(20,20,30,0.8))",
-                    backdropFilter: "blur(10px)",
-                    border: "1px solid rgba(100,100,120,0.2)",
-                    boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
-                  }}
-                >
-                  <div className={styles.cardContent}>
-                    {/* Top section: Quote icon and Rating */}
-                    <div className="flex justify-between items-start mb-6">
-                      {/* Quote Icon */}
-                      <FaQuoteLeft className={styles.quoteIcon} size={28} />
+              <div
+                key={t.id} // Key on the top-level element
+                className={styles.card}
+                style={{
+                  clipPath:
+                    "polygon(0% 10%, 10% 0%, 100% 0%, 100% 90%, 90% 100%, 0% 100%)",
+                  background:
+                    "linear-gradient(145deg, rgba(30,30,40,0.8), rgba(20,20,30,0.8))",
+                  backdropFilter: "blur(10px)",
+                  border: "1px solid rgba(100,100,120,0.2)",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+                }}
+              >
+                <div className={styles.cardContent}>
+                  {/* Top section: Quote icon and Rating */}
+                  <div className="flex justify-between items-start mb-6">
+                    {/* Quote Icon */}
+                    <FaQuoteLeft className={styles.quoteIcon} size={28} />
 
-                      {/* Rating Stars */}
-                      <div className={styles.ratingContainer}>
-                        {[...Array(5)].map((_, i) => (
-                          <FaStar
-                            key={i}
-                            className={`${
-                              i < t.rating ? styles.accentText : "text-gray-700"
-                            } ${styles.star}`}
-                            size={18}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    <p className={styles.comment}>"{t.comment}"</p>
-
-                    <div className={styles.carInfo}>
-                      <GiSteeringWheel className={styles.carIcon} size={20} />
-                      <span className={styles.carText}>{t.car}</span>
-                    </div>
-
-                    <div className={styles.authorContainer}>
-                      <div className={styles.avatar}>{t.name.charAt(0)}</div>
-
-                      <div className={styles.authorInfo}>
-                        <h3 className={styles.authorName}>{t.name}</h3>
-                        <p className={styles.authorRole}>{t.role}</p>
-                      </div>
+                    {/* Rating Stars */}
+                    <div className={styles.ratingContainer}>
+                      {[...Array(5)].map((_, i) => (
+                        <FaStar
+                          key={i}
+                          className={`${
+                            i < t.rating ? styles.accentText : "text-gray-700"
+                          } ${styles.star}`}
+                          size={18}
+                        />
+                      ))}
                     </div>
                   </div>
 
-                  <div className={styles.decorativeCorner} />
+                  <p className={styles.comment}>"{t.comment}"</p>
 
-                  <div className={styles.patternIcon}>
-                    <IconComponent size={36} />
+                  <div className={styles.carInfo}>
+                    <GiSteeringWheel className={styles.carIcon} size={20} />
+                    <span className={styles.carText}>{t.car}</span>
                   </div>
+
+                  <div className={styles.authorContainer}>
+                    <div className={styles.avatar}>{t.name.charAt(0)}</div>
+
+                    <div className={styles.authorInfo}>
+                      <h3 className={styles.authorName}>{t.name}</h3>
+                      <p className={styles.authorRole}>{t.role}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.decorativeCorner} />
+
+                <div className={styles.patternIcon}>
+                  <IconComponent size={36} />
                 </div>
               </div>
             );
