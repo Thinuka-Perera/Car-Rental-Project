@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import User from '../models/userModel.js';
 import validator from  "validator";
-import bcrypt from "bcrypt.js";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 // TOKEN CONFIG
@@ -27,6 +27,7 @@ const createToken = (userId) => {
 // REGISTER FUNCTION
 export async function register(req, res) {
   try {
+    
     const name = String(req.body.name || "").trim();
     const emailRaw = String(req.body.email || "").trim();
     const email =
