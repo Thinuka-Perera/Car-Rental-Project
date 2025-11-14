@@ -1,6 +1,7 @@
 import express from 'express';
-import authMiddleware from '../middlewares/auth.js';
-import {upload} from '../middleware/auth.js';
+import authMiddleware from '../middleware/auth.js';
+import { upload } from '../middleware/uploads.js';
+
 import {
   createBooking,
   deleteBooking,

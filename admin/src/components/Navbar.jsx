@@ -24,6 +24,8 @@ const Navbar = () => {
   }, []);
 
 
+// when click another location its automaticaly close the menubar
+
   useEffect(() => {
     const onDocClick = (e) => {
       if (

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Car from "./carModel";
+import Car from "./carModel.js";
 
 const { Schema } = mongoose;
 
