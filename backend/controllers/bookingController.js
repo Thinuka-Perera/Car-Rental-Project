@@ -136,7 +136,7 @@ export const createBooking = async (req, res) => {
       await session.abortTransaction();
       session.endSession();
       return res
-        .status(400)
+        .status(409)
         .json({ success: false, message: "Car already booked" });
     }
 
