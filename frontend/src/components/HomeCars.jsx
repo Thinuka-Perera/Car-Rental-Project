@@ -1,7 +1,7 @@
 // src/components/HomeCars.jsx
 import React, { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowRight, Users, Fuel, Gauge, CheckCircle, Zap } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { ArrowRight, Users, Fuel, Gauge, CheckCircle, Zap, RefreshCw } from "lucide-react";
 import axios from "axios";
 import { homeCarsStyles as styles } from "../assets/dummyStyles";
 
@@ -16,11 +16,13 @@ const daysBetween = (from, to) =>
 
 const HomeCars = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [animateCards, setAnimateCards] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const abortRef = useRef(null);
 
   const base = "http://localhost:5000";
@@ -43,20 +45,47 @@ const HomeCars = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchCars = async () => {
-    setLoading(true);
+  // ✅ Auto-refresh when returning to this page
+  useEffect(() => {
+    if (location.pathname === "/" || location.pathname.includes("home")) {
+      console.log("📍 Returned to home - refreshing cars...");
+      fetchCars();
+    }
+  }, [location.pathname]);
+
+  // ✅ Auto-refresh when window regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log("👁️ Window focused - refreshing cars...");
+      fetchCars();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
+  const fetchCars = async (showRefreshIndicator = false) => {
+    if (showRefreshIndicator) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError("");
+    
     try {
       abortRef.current?.abort();
     } catch {}
+    
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+    
     try {
       const res = await api.get("/api/cars", {
         params: { limit },
         signal: ctrl.signal,
       });
       setCars(res.data?.data || []);
+      console.log("✅ Cars refreshed successfully");
     } catch (err) {
       const isCanceled =
         err?.code === "ERR_CANCELED" ||
@@ -70,7 +99,12 @@ const HomeCars = () => {
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleManualRefresh = () => {
+    fetchCars(true);
   };
 
   const buildImageSrc = (image) => {
@@ -117,29 +151,63 @@ const HomeCars = () => {
 
   const computeEffectiveAvailability = (car) => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    console.log("🔍 Checking availability for:", car.make, car.model);
+    console.log("📅 Today:", today.toISOString());
+    console.log("📋 Bookings:", car.bookings);
 
     if (Array.isArray(car.bookings) && car.bookings.length) {
-      const overlapping = car.bookings
+      // Filter bookings that have valid dates AND are not cancelled
+      const validBookings = car.bookings
         .map((b) => {
           const pickup = b.pickupDate ?? b.startDate ?? b.start ?? b.from;
           const ret = b.returnDate ?? b.endDate ?? b.end ?? b.to;
-          if (!pickup || !ret) return null;
-          return { pickup: new Date(pickup), return: new Date(ret), raw: b };
+          
+          // Skip bookings without dates or cancelled bookings
+          if (!pickup || !ret) {
+            console.log("⏭️ Skipping booking without dates:", b);
+            return null;
+          }
+          
+          // Skip cancelled or completed bookings
+          if (b.status === "cancelled" || b.status === "completed") {
+            console.log("⏭️ Skipping cancelled/completed booking:", b);
+            return null;
+          }
+
+          return { 
+            pickup: new Date(pickup), 
+            return: new Date(ret), 
+            status: b.status,
+            raw: b 
+          };
         })
-        .filter(Boolean)
-        .filter(
-          (b) =>
-            startOfDay(b.pickup) <= startOfDay(today) &&
-            startOfDay(today) <= startOfDay(b.return)
-        );
+        .filter(Boolean);
+
+      console.log("✅ Valid bookings:", validBookings);
+
+      // Find bookings that overlap with today
+      const overlapping = validBookings.filter((b) => {
+        const pickupDay = startOfDay(b.pickup);
+        const returnDay = startOfDay(b.return);
+        const isOverlapping = pickupDay <= today && today <= returnDay;
+        
+        console.log(`  📌 Booking: ${b.pickup.toDateString()} to ${b.return.toDateString()} - Overlapping: ${isOverlapping}`);
+        
+        return isOverlapping;
+      });
 
       if (overlapping.length) {
+        console.log("🔴 Car is BOOKED - overlapping bookings:", overlapping.length);
         overlapping.sort((a, b) => b.return - a.return);
         return {
           state: "booked",
           until: overlapping[0].return.toISOString(),
           source: "bookings",
         };
+      } else {
+        console.log("🟢 Car is AVAILABLE - no overlapping bookings");
       }
     }
 
@@ -165,6 +233,7 @@ const HomeCars = () => {
       return { ...car.availability, source: "availability" };
     }
 
+    console.log("🟢 Car is FULLY AVAILABLE (no bookings or availability info)");
     return { state: "fully_available", source: "none" };
   };
 
@@ -185,9 +254,10 @@ const HomeCars = () => {
     }
   };
 
-  // ✅ Updated: Pass the whole car instead of car.availability
   const renderAvailabilityBadge = (car) => {
     const effective = computeEffectiveAvailability(car);
+    
+    console.log(`🏷️ Rendering badge for ${car.make} ${car.model}:`, effective?.state);
 
     if (!effective)
       return (
@@ -279,29 +349,8 @@ const HomeCars = () => {
 
   const handleBook = (car) => {
     if (isBookDisabled(car)) return;
-
-    // ✅ Optimistic update: Add temporary booking to local state
-    setCars((prev) =>
-      prev.map((c) =>
-        c._id === car._id
-          ? {
-              ...c,
-              bookings: [
-                ...(c.bookings || []),
-                {
-                  bookingId: "temp-booking",
-                  pickupDate: new Date().toISOString(),
-                  returnDate: new Date(
-                    Date.now() + 2 * 24 * 60 * 60 * 1000
-                  ).toISOString(),
-                  status: "pending",
-                },
-              ],
-            }
-          : c
-      )
-    );
-
+    
+    // ✅ REMOVED OPTIMISTIC UPDATE - Just navigate with car data
     navigate(`/cars/${car._id || car.id}`, { state: { car } });
   };
 
@@ -320,6 +369,22 @@ const HomeCars = () => {
               for your next journey
             </p>
           </div>
+        </div>
+        
+        {/* ✅ Manual Refresh Button */}
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={handleManualRefresh}
+            disabled={refreshing}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              refreshing
+                ? 'bg-gray-700 cursor-not-allowed'
+                : 'bg-orange-600 hover:bg-orange-700'
+            } text-white`}
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh Cars'}
+          </button>
         </div>
       </div>
 

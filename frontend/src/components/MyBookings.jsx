@@ -21,6 +21,8 @@ import {
   FaCreditCard,
   FaReceipt,
   FaArrowRight,
+  FaTrash,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import { myBookingsStyles as s } from "../assets/dummyStyles";
 
@@ -157,7 +159,6 @@ const normalizeBooking = (booking) => {
     raw: booking,
   };
 
-  // derive completed/upcoming from return date
   try {
     const now = new Date();
     const _return = new Date(normalized.dates.return);
@@ -170,6 +171,62 @@ const normalizeBooking = (booking) => {
 
   return normalized;
 };
+
+// ---------- Delete Confirmation Modal ----------
+const DeleteConfirmModal = ({ booking, onConfirm, onCancel }) => (
+  <div className={s.modalOverlay}>
+    <div className="max-w-md w-full bg-gray-800 rounded-2xl border border-gray-700 p-6 mx-4">
+      <div className="flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+          <FaExclamationTriangle className="text-red-500 text-3xl" />
+        </div>
+      </div>
+      
+      <h3 className="text-2xl font-bold text-center text-white mb-2">
+        Delete Booking?
+      </h3>
+      
+      <p className="text-gray-400 text-center mb-6">
+        Are you sure you want to permanently delete this booking for{" "}
+        <span className="text-orange-400 font-semibold">{booking.car.make}</span>?
+        This action cannot be undone.
+      </p>
+
+      <div className="bg-gray-700/30 rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between text-sm mb-2">
+          <span className="text-gray-400">Booking Date:</span>
+          <span className="text-white">{formatDate(booking.dates.pickup)}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-400">Status:</span>
+          <span className={`px-2 py-1 rounded text-xs ${
+            booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
+          }`}>
+            {booking.status}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+        >
+          <FaTrash />
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
 // ---------- Small presentational components ----------
 const FilterButton = ({ filterKey, currentFilter, icon, label, onClick }) => (
@@ -208,8 +265,10 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const BookingCard = ({ booking, onViewDetails }) => {
+const BookingCard = ({ booking, onViewDetails, onDelete }) => {
   const days = daysBetween(booking.dates.pickup, booking.dates.return);
+  const canDelete = booking.status === 'cancelled' || booking.status === 'completed';
+  
   return (
     <div className={s.bookingCard}>
       <div className={s.cardImageContainer}>
@@ -218,6 +277,19 @@ const BookingCard = ({ booking, onViewDetails }) => {
           alt={booking.car.make}
           className={s.cardImage}
         />
+        {canDelete && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(booking);
+            }}
+            className="absolute top-3 right-3 p-2 bg-red-600/90 hover:bg-red-700 text-white rounded-full transition-all hover:scale-110"
+            title="Delete booking"
+          >
+            <FaTrash className="text-sm" />
+          </button>
+        )}
       </div>
 
       <div className={s.cardContent}>
@@ -225,7 +297,7 @@ const BookingCard = ({ booking, onViewDetails }) => {
           <div>
             <h3 className={s.carTitle}>{booking.car.make}</h3>
             <p className={s.carSubtitle}>
-              {booking.car.category} â€¢ {booking.car.year}
+              {booking.car.category} • {booking.car.year}
             </p>
           </div>
           <div className="text-right">
@@ -281,9 +353,10 @@ const BookingCard = ({ booking, onViewDetails }) => {
   );
 };
 
-const BookingModal = ({ booking, onClose, onCancel }) => {
+const BookingModal = ({ booking, onClose, onCancel, onDelete }) => {
   const days = daysBetween(booking.dates.pickup, booking.dates.return);
   const pricePerDay = days > 0 ? booking.price / days : booking.price;
+  const canDelete = booking.status === 'cancelled' || booking.status === 'completed';
 
   return (
     <div className={s.modalOverlay}>
@@ -301,6 +374,16 @@ const BookingModal = ({ booking, onClose, onCancel }) => {
                   className={s.cancelButton}
                 >
                   Cancel Booking
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  onClick={() => onDelete(booking)}
+                  className="px-3 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white flex items-center gap-2 transition-colors"
+                  title="Delete booking permanently"
+                >
+                  <FaTrash /> Delete
                 </button>
               )}
               <button
@@ -415,13 +498,13 @@ const BookingModal = ({ booking, onClose, onCancel }) => {
                 <div className="mb-3">
                   <p className={s.infoLabel}>Payment Method:</p>
                   <p className={s.infoValue}>
-                    {booking.paymentMethod || "â€”"}
+                    {booking.paymentMethod || "—"}
                   </p>
                 </div>
                 <div>
                   <p className={s.infoLabel}>Transaction ID:</p>
                   <p className={s.infoValue}>
-                    {booking.paymentId || booking.raw?.sessionId || "â€”"}
+                    {booking.paymentId || booking.raw?.sessionId || "—"}
                   </p>
                 </div>
               </div>
@@ -469,7 +552,10 @@ const MyBookings = () => {
   const [loading, setLoading] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [bookingToDelete, setBookingToDelete] = useState(null);
   const [error, setError] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const isMounted = useRef(true);
   useEffect(() => () => (isMounted.current = false), []);
@@ -565,6 +651,54 @@ const MyBookings = () => {
     [selectedBooking]
   );
 
+  // ✅ NEW: Delete booking function
+  const handleDeleteClick = (booking) => {
+    setBookingToDelete(booking);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!bookingToDelete) return;
+    
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      };
+
+      await axios.delete(`${API_BASE}/api/bookings/${bookingToDelete.id}`, {
+        headers,
+      });
+
+      // Remove from local state
+      setBookings((prev) => prev.filter((b) => b.id !== bookingToDelete.id));
+      
+      // Close modals
+      setShowDeleteConfirm(false);
+      setShowModal(false);
+      setBookingToDelete(null);
+      setSelectedBooking(null);
+
+      // Show success message
+      alert("Booking deleted successfully!");
+    } catch (err) {
+      alert(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to delete booking"
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setBookingToDelete(null);
+  };
+
   const filteredBookings = useMemo(
     () =>
       filter === "all" ? bookings : bookings.filter((b) => b.status === filter),
@@ -582,6 +716,7 @@ const MyBookings = () => {
     setSelectedBooking(b);
     setShowModal(true);
   };
+  
   const closeModal = () => {
     setSelectedBooking(null);
     setShowModal(false);
@@ -653,6 +788,7 @@ const MyBookings = () => {
                 key={booking.id}
                 booking={booking}
                 onViewDetails={openDetails}
+                onDelete={handleDeleteClick}
               />
             ))}
           </div>
@@ -682,7 +818,25 @@ const MyBookings = () => {
           booking={selectedBooking}
           onClose={closeModal}
           onCancel={cancelBooking}
+          onDelete={handleDeleteClick}
         />
+      )}
+
+      {showDeleteConfirm && bookingToDelete && (
+        <DeleteConfirmModal
+          booking={bookingToDelete}
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
+      )}
+
+      {deleting && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mb-4"></div>
+            <p className="text-white">Deleting booking...</p>
+          </div>
+        </div>
       )}
     </div>
   );

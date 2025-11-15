@@ -7,7 +7,7 @@ import ContactPage from "./pages/ContactPage";
 import CarPage from "./pages/CarPage";
 import CarDetailsPage from "./pages/CarDetailsPage";
 import { FaArrowUp } from "react-icons/fa";
-import MyBookings from "./components/MyBookings";
+import MyBookings from "./pages/MyBooking";
 import VerifyPaymentPage from "./pages/VerifyPaymentPage";
 
 // Protected Route
@@ -26,7 +26,7 @@ const ProtectedRoute = ({ children }) => {
 
 // RedirectIfAuthenticated Route
 const RedirectIfAuthenticated = ({ children }) => {
-  const authToken = localStorage.getItem("authToken"); // make sure key matches ProtectedRoute
+  const authToken = localStorage.getItem("token"); // ✅ FIXED: Changed from "authToken" to "token"
   if (authToken) {
     return <Navigate to="/" replace />;
   }
@@ -56,29 +56,12 @@ const App = () => {
   return (
     <>
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<Home />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/cars" element={<CarPage />} />
 
-        {/* Protected routes */}
-        <Route
-          path="/cars/:id"
-          element={
-            <ProtectedRoute>
-              <CarDetailsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/bookings"
-          element={
-            <ProtectedRoute>
-              <MyBookings />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Auth-only routes */}
+        {/* Auth-only routes (redirect to home if already logged in) */}
         <Route
           path="/login"
           element={
@@ -96,18 +79,38 @@ const App = () => {
           }
         />
 
-        <Route path="/success" element={<VerifyPaymentPage/>}></Route>
-        <Route path="/cancel" element={<VerifyPaymentPage/>}></Route>
+        {/* Protected routes (require authentication) */}
+        <Route
+          path="/cars/:id"
+          element={
+            <ProtectedRoute>
+              <CarDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/bookings"
+          element={
+            <ProtectedRoute>
+              <MyBookings />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="*" element={<Navigate to="/" replace />} />  
+        {/* Payment verification routes - NO PROTECTION NEEDED */}
+        {/* These pages verify payment and then redirect, so they should be public */}
+        <Route path="/success" element={<VerifyPaymentPage />} />
+        <Route path="/cancel" element={<VerifyPaymentPage />} />
 
+        {/* Catch-all route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
       {/* Scroll to Top Button */}
       {showButton && (
         <button
           onClick={scrollUp}
-          className="fixed bottom-8 right-8 p-3 rounded-full bg-gradient-to-r from-orange-600 to-orange-700 text-white shadow-lg transition-transform hover:scale-105 focus:outline-none"
+          className="fixed bottom-8 right-8 p-3 rounded-full bg-gradient-to-r from-orange-600 to-orange-700 text-white shadow-lg transition-transform hover:scale-105 focus:outline-none z-50"
           aria-label="Scroll to top"
         >
           <FaArrowUp size={20} />
