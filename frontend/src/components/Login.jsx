@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { loginStyles } from "../assets/dummyStyles";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaEye, FaEyeSlash, FaLock } from "react-icons/fa";
+import { FaArrowLeft, FaEye, FaEyeSlash, FaLock, FaUser } from "react-icons/fa";
 import logo from "../assets/logocar.png";
-import { FaUser } from "react-icons/fa";
-import{toast, ToastContainer} from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import axios from "axios";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -13,6 +13,8 @@ const Login = () => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [isActive, setIsActive] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(true); // add your checkbox logic if needed
 
   useEffect(() => {
     setIsActive(true);
@@ -25,31 +27,72 @@ const Login = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Login details:", credentials);
-    localStorage.setItem("authToken", "your-authentication-token-here");
-
-    // Notification
-    toast.success("Login Successful! Welcome back", {
-      position: "top-right",
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      theme: "colored",
-      onClose: () => {
-        const redirectPath =  "/";
-        navigate(redirectPath, { replace: true });
-      },
-    });
-  };
-
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!acceptedTerms) {
+      toast.error("Please Accept terms & conditions", { theme: "dark" });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const base = "http://localhost:5000";
+      const url = `${base}/api/auth/login`;
+
+      const res = await axios.post(url, credentials, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (res.status >= 200 && res.status < 300) {
+        const { token, user, message } = res.data || {};
+
+        if (token) localStorage.setItem("token", token);
+        if (user) localStorage.setItem("user", JSON.stringify(user));
+
+        toast.success(message || "Login Successful! Welcome back", {
+          position: "top-right",
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "colored",
+          onClose: () => {
+            const redirectPath = "/";
+            navigate(redirectPath, { replace: true });
+          },
+          autoClose: 1000,
+        });
+      } else {
+        toast.error("Unexpected response from server", { theme: "colored" });
+      }
+    } catch (err) {
+      console.error("Login error (frontend):", err);
+
+      if (err.response) {
+        const serverMessage =
+          err.response.data?.message ||
+          err.response.data?.error ||
+          `Server error: ${err.response.status}`;
+        toast.error(serverMessage, { theme: "colored" });
+      } else if (err.request) {
+        toast.error("No response from server — is backend running?", {
+          theme: "colored",
+        });
+      } else {
+        toast.error(err.message || "Login failed", { theme: "colored" });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className={loginStyles.pageContainer}>
-      {/* Animated Dark Background */}
+      {/* Animated Background */}
       <div className={loginStyles.animatedBackground.base}>
         <div
           className={`${loginStyles.animatedBackground.orb1} ${
@@ -76,7 +119,7 @@ const Login = () => {
       {/* LOGIN Card */}
       <div
         className={`${loginStyles.loginCard.container} ${
-          isActive ? "scale-100 opacity-100 " : "scale-90 opacity-0"
+          isActive ? "scale-100 opacity-100" : "scale-90 opacity-0"
         }`}
       >
         <div className={loginStyles.loginCard.card}>
@@ -91,10 +134,7 @@ const Login = () => {
                   src={logo}
                   alt="logo"
                   className="h-[1em] w-auto block"
-                  style={{
-                    display: "block",
-                    objectFit: "contain",
-                  }}
+                  style={{ objectFit: "contain" }}
                 />
                 <span className="font-bold tracking-wider">YOUgo</span>
               </div>
@@ -104,7 +144,8 @@ const Login = () => {
               LUXURY MOBILITY EXPERIENCE
             </p>
           </div>
-          {/*Form*/}
+
+          {/* Form */}
           <form onSubmit={handleSubmit} className={loginStyles.form.container}>
             <div className={loginStyles.form.inputContainer}>
               <div className={loginStyles.form.inputWrapper}>
@@ -146,9 +187,13 @@ const Login = () => {
               </div>
             </div>
 
-            <button type="submit" className={loginStyles.form.submitButton}>
+            <button
+              type="submit"
+              className={loginStyles.form.submitButton}
+              disabled={loading}
+            >
               <span className={loginStyles.form.buttonText}>
-                ACCESS PREMIUM GARAGE
+                {loading ? "Logging in..." : "ACCESS PREMIUM GARAGE"}
               </span>
               <div className={loginStyles.form.buttonHover}></div>
             </button>
@@ -163,7 +208,7 @@ const Login = () => {
         </div>
       </div>
 
-       <ToastContainer
+      <ToastContainer
         position="top-right"
         autoClose={1000}
         hideProgressBar={false}
@@ -175,12 +220,11 @@ const Login = () => {
         pauseOnHover
         theme="colored"
         toastStyle={{
-          backgroundColor: '#fb923c',
-          borderRadius: '12px',
-          boxShadow: '0 4px 20px rgba(249, 115, 22, 0.25)'
+          backgroundColor: "#fb923c",
+          borderRadius: "12px",
+          boxShadow: "0 4px 20px rgba(249, 115, 22, 0.25)",
         }}
-      />            
-
+      />
     </div>
   );
 };

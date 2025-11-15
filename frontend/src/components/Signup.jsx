@@ -10,8 +10,9 @@ import {
   FaCheck,
 } from "react-icons/fa";
 import logo from "../assets/logocar.png";
-import { toast , ToastContainer} from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import { FaUser } from "react-icons/fa";
+import axios from "axios";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isActive, setIsActive] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setIsActive(true);
@@ -40,21 +42,78 @@ const Signup = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!acceptedTerms) {
       toast.error("Please Accept terms & conditions", { theme: "dark" });
     }
+    setLoading(true);
 
-    toast.success("Account created successfully! Welcome to PremiumDrive", {
-      position: "top-right",
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      theme: "dark",
-      onClose: () => navigate("/login"),
-    });
+    try {
+      const base = "http://localhost:5000";
+      const url = `${base}/api/auth/register`;
+      const res = await axios.post(url, formData, {
+        headers: { "Content-Type": "application/json" }, // fixed closing brace
+      });
+
+      if (res.status >= 200 && res.status < 300) {
+        const { token, user } = res.data || {};
+
+        if (token) localStorage.setItem("token", token);
+        if (user) localStorage.setItem("user", JSON.stringify(user));
+        toast.success("Account created successfully! Welcome to PremiumDrive", {
+          position: "top-right",
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "dark",
+          autoClose: 1200,
+          onClose: () => navigate("/login"),
+        });
+
+        setLoading(false);
+        return;
+      }
+      toast.error("Unexpected server response during registration.", {
+        theme: "dark",
+      });
+    } 
+    catch (err) {
+      // Detailed axios error handling
+      console.error("Signup error (frontend):", err);
+
+      if (err.response) {
+        // Server responded with a status outside 2xx
+        console.log(
+          "Server response (debug):",
+          err.response.status,
+          err.response.data
+        );
+        const serverMessage =
+          err.response.data?.message ||
+          err.response.data?.error ||
+          `Server error: ${err.response.status}`;
+        toast.error(serverMessage, { theme: "dark" });
+      } else if (err.request) {
+        // Request made but no response
+        console.log("No response received (debug):", err.request);
+        toast.error(
+          "No response from server — ensure backend is running and CORS is configured.",
+          {
+            theme: "dark",
+          }
+        );
+      } else {
+        // Something else happened
+        toast.error(err.message || "Registration failed", { theme: "dark" });
+      }
+    } 
+
+    finally{
+      setLoading(false);
+    };
+
   };
 
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
@@ -225,6 +284,7 @@ const Signup = () => {
             <button
               type="submit"
               className={signupStyles.form.submitButton}
+              disabled={loading}
               style={{
                 borderRadius: "16px",
                 boxShadow: "0 5px 15px rgba(8,90,20,0.6)",
@@ -232,7 +292,7 @@ const Signup = () => {
             >
               <span className={signupStyles.form.buttonText}>
                 <FaCheck className="inline-block mr-2" />
-                CREATE ACCOUNT
+                {loading ? "CREATING..." : "CREATE ACCOUNT"}
               </span>
               <div className={signupStyles.form.buttonHover} />
             </button>

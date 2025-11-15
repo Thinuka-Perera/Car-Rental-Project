@@ -98,7 +98,6 @@ const blockingStatuses = ["pending", "active", "upcoming"];
 
 bookingSchema.post("save", async function (doc, next) {
   try {
-    // If no car ID, skip
     if (!doc.car?.id) return next();
 
     const carId = doc.car.id;
@@ -110,42 +109,26 @@ bookingSchema.post("save", async function (doc, next) {
       status: doc.status,
     };
 
-    // Only add to car bookings if status is blocking
     if (blockingStatuses.includes(doc.status)) {
+      // Add or update the booking entry
       await Car.findByIdAndUpdate(
         carId,
-        {
-          $push: { bookings: { bookingId: doc._id } },
-        },
+        { $addToSet: { bookings: bookingEntry } }, // <-- use $addToSet to avoid duplicates
         { new: true }
       ).exec();
-
-
+    } else {
+      // Remove booking if status is not blocking
       await Car.findByIdAndUpdate(
         carId,
-        {$pull: {bookings: bookingEntry}},
-        {new:true}
+        { $pull: { bookings: { bookingId: doc._id } } },
+        { new: true }
       ).exec();
+    }
 
-
-
-    } 
-
-    else {
-      await Car.findByIdAndUpdate(carId, {
-        $pull: { bookings: { bookingId: doc._id } },
-      },
-      {new: true}
-    ).exec();
-
-   }
-   next();
-
-  } 
-  
-  catch (error) {
+    next();
+  } catch (error) {
     console.error("Error in post-save hook:", error);
-    next(error); // pass error to next
+    next(error);
   }
 });
 
